@@ -124,6 +124,35 @@ Staying alive:
   usage events, and the engine works from Room. The only thing that resets is "already nudged
   this session".
 
+## Screens
+
+- **Home:** each tracked app with today's total, a meter each for the day and the rolling window,
+  and its state right now: available, mid-session (and how long you have to reopen it to
+  continue), overridden, or blocked with a countdown. Blocked apps sort to the top. A banner
+  names any missing permission. Tap an app for its settings.
+- **App settings:** every limit for that app, the enforce switch, defaults, and stop tracking.
+  Saved limits apply on the monitor's next tick.
+- **History:** the last 14 days. Sessions are rebuilt from the recorded intervals, with whether
+  each was a free hit, got a cooldown or hit the cap. Overrides show how long you waited and
+  until when. Blocks show the reason.
+- **Choose apps:** the picker (see Tracking).
+- **Permissions:** the onboarding screen.
+
+History is kept for 90 days.
+
+## Layout
+
+```
+policy/          pure Kotlin policy engine + tests (no Android)
+app/
+  data/          Room: tracked apps and their limits, usage intervals, block and override logs
+  monitor/       the foreground service, ForegroundTracker (+ tests), IntervalRecorder, BootReceiver
+  enforce/       Room -> engine glue, the block overlay and its screen
+  apps/          installed-app list, icons, "last used app"
+  permissions/   permission checks and the Settings screens that grant them
+  ui/            Compose screens
+```
+
 ### adb shortcuts for testing
 
 ```

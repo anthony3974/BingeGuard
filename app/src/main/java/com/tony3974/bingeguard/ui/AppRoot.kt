@@ -10,15 +10,19 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.tony3974.bingeguard.monitor.MonitorService
 import com.tony3974.bingeguard.permissions.PermissionStatus
+import com.tony3974.bingeguard.ui.history.HistoryScreen
 import com.tony3974.bingeguard.ui.home.HomeScreen
 import com.tony3974.bingeguard.ui.onboarding.OnboardingScreen
 import com.tony3974.bingeguard.ui.picker.PickerScreen
+import com.tony3974.bingeguard.ui.settings.AppSettingsScreen
 
 /** Screens, as strings so the back stack survives rotation and process death. */
 object Routes {
     const val ONBOARDING = "onboarding"
     const val HOME = "home"
     const val PICKER = "picker"
+    const val HISTORY = "history"
+    const val APP_PREFIX = "app/"
 }
 
 @Composable
@@ -39,11 +43,17 @@ fun AppRoot() {
         onPauseOrDispose { }
     }
 
-    when (stack.last()) {
-        Routes.ONBOARDING -> OnboardingScreen(onDone = { pop() })
-        Routes.PICKER -> PickerScreen(onBack = { pop() })
+    val route = stack.last()
+    when {
+        route == Routes.ONBOARDING -> OnboardingScreen(onDone = { pop() })
+        route == Routes.PICKER -> PickerScreen(onBack = { pop() })
+        route == Routes.HISTORY -> HistoryScreen(onBack = { pop() })
+        route.startsWith(Routes.APP_PREFIX) ->
+            AppSettingsScreen(packageName = route.removePrefix(Routes.APP_PREFIX), onBack = { pop() })
         else -> HomeScreen(
             onAddApps = { push(Routes.PICKER) },
+            onOpenApp = { push(Routes.APP_PREFIX + it) },
+            onHistory = { push(Routes.HISTORY) },
             onPermissions = { push(Routes.ONBOARDING) },
         )
     }
