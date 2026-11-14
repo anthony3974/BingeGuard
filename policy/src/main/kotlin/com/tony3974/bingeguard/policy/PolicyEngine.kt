@@ -50,6 +50,8 @@ data class Decision(
     val overrideUntilMs: Long?,
     /** The session that using the app now continues, or null if using it now starts a new one. */
     val session: Session?,
+    /** The latest session, running or ended (what a cooldown counts from). */
+    val lastSession: Session?,
     val rollingUsedMs: Long,
     val todayUsedMs: Long,
 ) {
@@ -154,7 +156,7 @@ object PolicyEngine {
             current != null && current.activeMs >= policy.nudgeAtMs -> Verdict.NUDGE
             else -> Verdict.ALLOW
         }
-        return Decision(verdict, blocks, overrideUntil, current, rollingUsed, todayUsed)
+        return Decision(verdict, blocks, overrideUntil, current, all.lastOrNull(), rollingUsed, todayUsed)
     }
 
     /** A running session stops at zero; a new one needs [Policy.minStartAllowanceMs] left. */

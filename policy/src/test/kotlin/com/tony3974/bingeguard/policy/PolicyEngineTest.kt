@@ -138,6 +138,8 @@ class PolicyEngineTest {
         val d = eval(10, use(0, 7))
         assertEquals(COOLDOWN, d.block?.reason)
         assertEquals(at(7 + 10.5), d.block?.untilMs)
+        assertNull(d.session)
+        assertEquals(7 * MINUTE_MS, d.lastSession?.activeMs)
     }
 
     @Test fun `leaving a 7 minute session and coming back within the gap continues it toward the cap`() {

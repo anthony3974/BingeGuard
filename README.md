@@ -95,6 +95,35 @@ a restart.
 When several limits apply, the block screen shows the one that lasts longest. Time spent bouncing
 off the block screen is never recorded, so prodding a blocked app doesn't extend its cooldown.
 
+## Enforcement
+
+Each second a tracked app is on screen, the monitor runs the policy engine for it:
+
+- **Allow:** record the time.
+- **Nudge:** record, and post one heads-up notification per session ("2 min left, leave now and
+  the cooldown is 9 min").
+- **Block:** stop recording, log a block event, show the block screen and send you to the home
+  screen (again every 2 s if the app is still in front).
+
+The block screen is a Compose view in a `TYPE_APPLICATION_OVERLAY` window. It shows why, a
+countdown and today's use. **Close** (or back) dismisses it, leaving you on the home screen.
+**I need it anyway…** starts the friction override: a 30 s wait (per-app), then typing the phrase
+(`OVERRIDE_PHRASE` in `enforce/Policies.kt`). That logs an override event and opens the app for
+the per-app grant (5 min). Starting the home screen from the service is allowed because Display
+over other apps is still a background-activity-start exemption on Android 17. Without that
+permission, a block can only post a notification.
+
+Staying alive:
+
+- `START_STICKY`: Android recreates the service after its process is killed. That restart counts
+  as a background foreground-service start, which the battery exemption allows.
+- `BootReceiver`: restarts it on `BOOT_COMPLETED` and `MY_PACKAGE_REPLACED` (installing an update
+  kills the running process). Both broadcasts are exemptions for starting a foreground service,
+  and `specialUse` isn't one of the types barred from boot.
+- Nothing important is held only in memory. On restart the service replays the last 30 min of
+  usage events, and the engine works from Room. The only thing that resets is "already nudged
+  this session".
+
 ### adb shortcuts for testing
 
 ```
