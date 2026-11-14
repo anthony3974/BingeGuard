@@ -1,13 +1,22 @@
 package com.tony3974.bingeguard.enforce
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -71,8 +80,9 @@ fun BlockScreen(ui: BlockUi) {
     // A new block (another app, or a new end time) starts the override over.
     key(ui.packageName, ui.untilMs) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+            // Room for the keyboard while typing the phrase (the overlay isn't resized for it).
             Column(
-                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+                Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
             ) {
@@ -126,6 +136,7 @@ private fun explanation(ui: BlockUi): String {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 private fun OverrideSection(ui: BlockUi, now: Long) {
     var step by remember { mutableStateOf(OverrideStep.NONE) }
@@ -152,25 +163,46 @@ private fun OverrideSection(ui: BlockUi, now: Long) {
         }
 
         OverrideStep.TYPING -> {
+            val focus = remember { FocusRequester() }
+            val requester = remember { BringIntoViewRequester() }
+            val imeVisible = WindowInsets.isImeVisible
+            // Open the keyboard on the phrase box, and keep the box above the keyboard.
+            LaunchedEffect(Unit) { focus.requestFocus() }
+            LaunchedEffect(imeVisible) {
+                if (imeVisible) {
+                    delay(250)
+                    requester.bringIntoView()
+                }
+            }
             Text(
                 "Type “$OVERRIDE_PHRASE” to open ${ui.app.label} for $grant. This is logged.",
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.bodyMedium,
             )
-            OutlinedTextField(
-                value = typed,
-                onValueChange = { typed = it },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, autoCorrectEnabled = false),
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedButton(
-                enabled = phraseMatches(typed),
-                onClick = {
-                    val waited = ((System.currentTimeMillis() - waitStartedAt) / 1000).toInt()
-                    ui.onOverride(waited, typed.trim())
-                },
-            ) { Text("Open for $grant") }
+            // The field and its button scroll into view together.
+            Column(
+                Modifier.fillMaxWidth().bringIntoViewRequester(requester),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                OutlinedTextField(
+                    value = typed,
+                    onValueChange = { typed = it },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Sentences,
+                        autoCorrectEnabled = false,
+                    ),
+                    modifier = Modifier.fillMaxWidth().focusRequester(focus),
+                )
+                OutlinedButton(
+                    enabled = phraseMatches(typed),
+                    onClick = {
+                        val waited = ((System.currentTimeMillis() - waitStartedAt) / 1000).toInt()
+                        ui.onOverride(waited, typed.trim())
+                    },
+                ) { Text("Open for $grant") }
+            }
         }
     }
 }

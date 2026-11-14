@@ -1,11 +1,21 @@
 package com.tony3974.bingeguard.ui.settings
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.ui.focus.onFocusEvent
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -109,7 +119,7 @@ private fun warnings(a: TrackedApp): List<String> = buildList {
     if (a.rollingBudgetSec >= a.rollingWindowSec) add("The rolling budget fills the whole window, so it never blocks.")
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun AppSettingsScreen(packageName: String, onBack: () -> Unit) {
     val context = LocalContext.current
@@ -120,6 +130,7 @@ fun AppSettingsScreen(packageName: String, onBack: () -> Unit) {
     var form by remember { mutableStateOf<Map<Field, String>?>(null) }
     var enabled by remember { mutableStateOf(true) }
     var confirmRemove by remember { mutableStateOf(false) }
+    var focusedField by remember { mutableStateOf<BringIntoViewRequester?>(null) }
 
     val loaded = app
     LaunchedEffect(loaded != null) {
@@ -147,8 +158,23 @@ fun AppSettingsScreen(packageName: String, onBack: () -> Unit) {
             null
         }
 
+        // With edge-to-edge the window no longer shrinks for the keyboard: pad for it here, and
+        // scroll the focused field back into view once the keyboard is up.
+        val imeVisible = WindowInsets.isImeVisible
+        LaunchedEffect(imeVisible, focusedField) {
+            if (imeVisible) {
+                delay(250)
+                focusedField?.bringIntoView()
+            }
+        }
         Column(
-            Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .consumeWindowInsets(padding)
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -161,7 +187,11 @@ fun AppSettingsScreen(packageName: String, onBack: () -> Unit) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("Enforce limits", style = MaterialTheme.typography.titleMedium)
-                    Text("Off: still listed, but not tracked or blocked.", style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        if (enabled) "On: tracked, and blocked by the limits below." else
+                            "Off: still listed, but not tracked or blocked.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
                 }
                 Switch(checked = enabled, onCheckedChange = { enabled = it })
             }
@@ -169,6 +199,7 @@ fun AppSettingsScreen(packageName: String, onBack: () -> Unit) {
             Field.entries.forEach { field ->
                 val text = current.getValue(field)
                 val ok = valid(field, text)
+                val requester = remember { BringIntoViewRequester() }
                 OutlinedTextField(
                     value = text,
                     onValueChange = { form = current + (field to it) },
@@ -178,7 +209,10 @@ fun AppSettingsScreen(packageName: String, onBack: () -> Unit) {
                     isError = !ok,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .bringIntoViewRequester(requester)
+                        .onFocusEvent { if (it.isFocused) focusedField = requester },
                 )
             }
 

@@ -3,6 +3,7 @@ package com.tony3974.bingeguard.enforce
 import android.content.Context
 import android.graphics.PixelFormat
 import android.view.View
+import android.view.WindowInsets
 import android.view.WindowManager
 import android.window.OnBackInvokedCallback
 import android.window.OnBackInvokedDispatcher
@@ -55,6 +56,10 @@ class BlockOverlay(private val context: Context) {
             PixelFormat.OPAQUE,
         ).apply {
             softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+            // adjustResize alone no longer shrinks windows of apps targeting 35+ (edge-to-edge),
+            // so ask to be kept clear of the keyboard too. BlockScreen also pads for it, in case
+            // the window still overlaps the keyboard.
+            fitInsetsTypes = WindowInsets.Type.systemBars() or WindowInsets.Type.ime()
             title = "Binge Guard block screen"
         }
         windowManager.addView(compose, params)
