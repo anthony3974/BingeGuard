@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A shield with a pause sign, inside the adaptive icon's 66dp safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#F2B134"
+        android:pathData="M54,30 L74,37 L74,53 C74,66 65,75 54,80 C43,75 34,66 34,53 L34,37 Z" />
+    <path
+        android:fillColor="#1F3A5F"
+        android:pathData="M46.5,45h5v18h-5z M56.5,45h5v18h-5z" />
+</vector>

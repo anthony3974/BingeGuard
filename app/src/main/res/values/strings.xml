@@ -1,0 +1,4 @@
+<resources>
+    <!-- The app's name everywhere (launcher, notifications, block screen). Change it here. -->
+    <string name="app_name">Binge Guard</string>
+</resources>
