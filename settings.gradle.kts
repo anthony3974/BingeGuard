@@ -20,4 +20,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "BingeGuard"
-include(":app")
+include(":app", ":policy")

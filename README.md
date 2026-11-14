@@ -74,6 +74,27 @@ Apps are keyed by package name, so a stock and a modded build are separate entri
 shows every launchable app with its package name and version. **Detect current app** finds the
 last app you used (other than Binge Guard and the launcher): open the app, come back, tap Detect.
 
+## Policy engine (`policy/`)
+
+Plain Kotlin with no Android dependencies, unit-tested on the JVM:
+`./gradlew :policy:test`. `PolicyEngine.evaluate` is stateless: it decides from an app's recorded
+foreground intervals, its limits, the time, and any overrides, so it gives the same answer after
+a restart.
+
+| Rule | Default | Exactly |
+|---|---|---|
+| Session | gap < 2 min | Foreground intervals joined by gaps shorter than the gap. A session's length counts foreground time only, not the gaps. |
+| Free hit | 5 min | A session up to this long gets no nudge and no cooldown. |
+| Nudge | 6 min | A notification once per session. |
+| Session cap | 8 min | Blocks. The session ends there. |
+| Cooldown | × 1.5 | After a session longer than the free hit ends, the app is blocked for length × 1.5, counted from its last moment on screen. Coming back within the gap continues the session instead (toward the cap). |
+| Rolling budget | 15 min per 60 min | A running session may use it all. A new session needs at least 1 min left, so a lifted block gives a real check-in. |
+| Daily ceiling | 90 min | From local midnight. Same 1-minute rule for new sessions. Lifts at midnight. |
+| Override | 30 s wait + phrase | Lets you in for 5 min despite any block. Logged. The overridden time counts as use, so the session and its cooldown grow. |
+
+When several limits apply, the block screen shows the one that lasts longest. Time spent bouncing
+off the block screen is never recorded, so prodding a blocked app doesn't extend its cooldown.
+
 ### adb shortcuts for testing
 
 ```
