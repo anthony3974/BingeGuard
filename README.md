@@ -61,6 +61,19 @@ foreground service types, timeouts and background-start restrictions):
   `QUERY_ALL_PACKAGES` or battery exemptions. It does add per-app memory limits that can kill a
   long-running process, which is why the service restarts itself (see Enforcement).
 
+## Tracking
+
+`MonitorService` (a `specialUse` foreground service) asks `UsageStatsManager.queryEvents` for new
+events once a second while the screen is on (every 5 s while it's off). `ForegroundTracker` (plain
+Kotlin, unit-tested) turns resume/pause, screen and lock-screen events into "the package on screen".
+While a tracked app is on screen, `IntervalRecorder` writes it to Room as an interval, saving the
+open interval's end every 5 s, so a killed process loses at most 5 s. On start the service replays
+the last 30 min of events, so a restart mid-session picks up where it was.
+
+Apps are keyed by package name, so a stock and a modded build are separate entries. The picker
+shows every launchable app with its package name and version. **Detect current app** finds the
+last app you used (other than Binge Guard and the launcher): open the app, come back, tap Detect.
+
 ### adb shortcuts for testing
 
 ```
